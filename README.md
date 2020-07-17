@@ -9,7 +9,7 @@ The database is quite popular for Teaching Cases. You'll find the DB scheme in t
  
 ![Northwind database schema](Northwind_A4_size_for_Print.png "Northwind database schema")
 
-## DB Assignments  [![Build Status](https://travis-ci.org/AisBrestEdu/db-assignments.svg?branch=master)](https://travis-ci.org/AisBrestEdu/db-assignments)
+## DB Assignments  [![Build Status](https://travis-ci.org/dzsilkov/db-assignments.svg?branch=master)](https://travis-ci.org/dzsilkov/db-assignments)
 
 To start DB Assignments please follow the next steps:
 *  [Fork this repo](#user-content-how-to-fork-this-repo)
@@ -25,14 +25,14 @@ To start DB Assignments please follow the next steps:
 ### How to setup travis-ci
 * Open [https://travis-ci.org/](https://travis-ci.org/) and sign in with your github account.
 * Activate your forked repo **db-assignments**.
-* Edit local README.md file and update all links (just replace all occurrences of `'AisBresEdu'` with your account name).
+* Edit local README.md file and update all links (just replace all occurrences of `'AisBrestEdu'` with your account name).
 * Commit and push updated README.md to github:
 ```bash
   git add README.md
   git commit -m "Update the links"
   git push origin master
 ```
-* Open https://github.com/AisBrestEdu/db-assignments and test the build icon. Now it will run all tests and update status once you push changes to github. Keep this icon green!
+* Open https://github.com/dzsilkov/db-assignments and test the build icon. Now it will run all tests and update status once you push changes to github. Keep this icon green!
 
 
 ### How to setup work environment
