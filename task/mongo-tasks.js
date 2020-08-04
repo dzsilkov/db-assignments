@@ -21,7 +21,18 @@
  * Test timeout is increased to 15sec for the function.
  * */
 async function before(db) {
-    await db.collection('employees').ensureIndex({CustomerID: 1});
+    await db.collection('employees').createIndex({EmployeeID: 1});
+    await db.collection('order-details').createIndex({OrderID: 1});
+    await db.collection('order-details').createIndex({ProductID: 1});
+    await db.collection('orders').createIndex({OrderID: 1});
+    await db.collection('orders').createIndex({CustomerID: 1});
+    await db.collection('orders').createIndex({OrderDate: 1});
+    await db.collection('customers').createIndex({CustomerID: 1});
+    await db.collection('products').createIndex({ProductsID: 1});
+    await db.collection('products').createIndex({SupplierID: 1});
+    await db.collection('products').createIndex({CategoryID: 1});
+    await db.collection('suppliers').createIndex({SupplierID: 1});
+    await db.collection('categories').createIndex({CategoryID: 1});
 }
 
 /**
@@ -37,12 +48,24 @@ async function task_1_1(db) {
             $project: {
                 _id: 0,
                 EmployeeID: 1,
-                "Employee Full Name": {$concat: ["$FirstName", " ", "$LastName"]},
+                "Employee Full Name": {
+                    $concat: [
+                        "$FirstName", " ", "$LastName"
+                    ]
+                },
                 Title: 1,
-                City: {$ifNull: ['$City', "Unspecified"]}
+                City: {
+                    $ifNull: [
+                        '$City', "Unspecified"
+                    ]
+                }
             }
         },
-        {$sort: {City: 1, "Employee Full Name": 1}}
+        {
+            $sort: {
+                City: 1, "Employee Full Name": 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -60,19 +83,39 @@ async function task_1_2(db) {
         {
             $group: {
                 _id: "$OrderID",
-                OrderTotalPrice: {$sum: {$multiply: ["$UnitPrice", "$Quantity"]}},
-                OrderTotalDiscount: {$sum: {$multiply: ["$Quantity", "$Discount"]}}
+                OrderTotalPrice: {
+                    $sum: {
+                        $multiply: [
+                            "$UnitPrice", "$Quantity"
+                        ]
+                    }
+                },
+                OrderTotalDiscount: {
+                    $sum: {
+                        $multiply: [
+                            "$Quantity", "$Discount"
+                        ]
+                    }
+                }
             }
         },
         {
             $project: {
                 _id: 0,
                 "Order Id": "$_id",
-                "Order Total Price": {$round: ["$OrderTotalPrice", 3]},
-                "Total Order Discount, %": {$cond: [{$eq: ["$OrderTotalDiscount", 0]}, "$OrderTotalDiscount", {$round: [{$multiply: [{ $divide: [ "$OrderTotalDiscount", "$OrderTotalPrice" ] }, 100]} ,3]}]}
+                "Order Total Price": {
+                    $round: ["$OrderTotalPrice", 3]
+                },
+                "Total Order Discount, %": {
+                    $cond: [{$eq: ["$OrderTotalDiscount", 0]}, "$OrderTotalDiscount", {$round: [{$multiply: [{$divide: ["$OrderTotalDiscount", "$OrderTotalPrice"]}, 100]} ,3]}]
+                }
             }
         },
-        {$sort: {"Order Id": -1}}
+        {
+            $sort: {
+                "Order Id": -1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -97,7 +140,11 @@ async function task_1_3(db) {
                 CompanyName: 1
             }
         },
-        {$sort: {CustomerID: 1}}
+        {
+            $sort: {
+                CustomerID: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -129,7 +176,12 @@ async function task_1_4(db) {
                 "% of all orders": {$round: [{$multiply: [{$divide: ["$Total Customer Orders", countAllOrders]}, 100]}, 3]}
             }
         },
-        {$sort: {"% of all orders": -1, "Customer Id": 1}}
+        {
+            $sort: {
+                "% of all orders": -1,
+                "Customer Id": 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -153,7 +205,11 @@ async function task_1_5(db) {
                 QuantityPerUnit: 1
             }
         },
-        {$sort: {ProductName: 1}}
+        {
+            $sort: {
+                ProductName: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -171,12 +227,15 @@ async function task_1_5(db) {
 async function task_1_6(db) {
     const result = await db.collection('products').aggregate([
         {
-           $lookup: {
-               from: "categories",
-               localField: "CategoryID",
-               foreignField: "CategoryID",
-               as: "Categories"
-           }
+            $lookup: {
+                from: "categories",
+                localField: "CategoryID",
+                foreignField: "CategoryID",
+                as: "Categories"
+            }
+        },
+        {
+            $unwind: "$Categories"
         },
         {
             $lookup: {
@@ -187,14 +246,22 @@ async function task_1_6(db) {
             }
         },
         {
+            $unwind: "$Suppliers"
+        },
+        {
             $project: {
                 _id: 0,
                 ProductName: 1,
-                CategoryName: {$arrayElemAt: ["$Categories.CategoryName", 0]},
-                "SupplierCompanyName": {$arrayElemAt: ["$Suppliers.CompanyName", 0]}
+                CategoryName: "$Categories.CategoryName",
+                SupplierCompanyName: "$Suppliers.CompanyName"
             }
         },
-        {$sort: {ProductName: 1, "SupplierCompanyName": 1}}
+        {
+            $sort: {
+                ProductName: 1,
+                SupplierCompanyName: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -213,8 +280,20 @@ async function task_1_7(db) {
         {
             $lookup: {
                 from: "employees",
-                localField: "ReportsTo",
-                foreignField: "EmployeeID",
+                let: { reportTo: "$ReportsTo"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$EmployeeID", "$$reportTo"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            ReportsTo: {$concat: ["$FirstName", " ", "$LastName"]}
+                        }
+                    }
+                ],
                 as: "ReportToEmployee"
             }
         },
@@ -223,10 +302,14 @@ async function task_1_7(db) {
                 _id: 0,
                 EmployeeID: 1,
                 "FullName": {$concat: ["$TitleOfCourtesy", "$FirstName", " ", "$LastName"]},
-                ReportsTo: {$ifNull: [{$concat: [{$arrayElemAt: ["$ReportToEmployee.FirstName", 0]}, " ", {$arrayElemAt: ["$ReportToEmployee.LastName", 0]}]}, "-"]}
+                ReportsTo: {$ifNull: [{$arrayElemAt: ["$ReportToEmployee.ReportsTo", 0]}, "-"]}
             }
         },
-        {$sort: {EmployeeID: 1}}
+        {
+            $sort: {
+                EmployeeID: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -254,7 +337,11 @@ async function task_1_8(db) {
                 "TotalNumberOfProducts": {$size: "$Products"}
             }
         },
-        {$sort: {CategoryName: 1}}
+        {
+            $sort: {
+                CategoryName: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -279,7 +366,11 @@ async function task_1_9(db) {
                 ContactName: 1
             }
         },
-        {$sort: {CustomerID: 1}}
+        {
+            $sort: {
+                CustomerID: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -327,7 +418,12 @@ async function task_1_11(db) {
                 UnitPrice: 1
             }
         },
-        {$sort: {UnitPrice: 1, ProductName: 1}}
+        {
+            $sort: {
+                UnitPrice: 1,
+                ProductName: 1
+            }
+        }
     ]).toArray();
     return result;
 }
@@ -339,7 +435,30 @@ async function task_1_11(db) {
  * Order products by price (asc) then by ProductName.
  */
 async function task_1_12(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('products').aggregate([
+        {
+            $project: {
+                _id: 0,
+                ProductName: 1,
+                UnitPrice: 1
+            }
+        },
+        {
+            $sort: {
+                UnitPrice: -1
+            }
+        },
+        {
+            $limit: 20
+        },
+        {
+            $sort: {
+                UnitPrice: 1,
+                ProductName: 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -349,7 +468,12 @@ async function task_1_12(db) {
  * HINT: That's acceptable to make it in 2 queries
  */
 async function task_1_13(db) {
-    throw new Error("Not implemented");
+    const countAllProducts = await db.collection('products').countDocuments({});
+    const countDiscontinuedProducts = await db.collection('products').countDocuments({Discontinued: 1});
+    return {
+        "TotalOfCurrentProducts": countAllProducts,
+        "TotalOfDiscontinuedProducts": countDiscontinuedProducts
+    }
 }
 
 /**
@@ -361,7 +485,27 @@ async function task_1_13(db) {
  *       https://docs.mongodb.com/manual/reference/operator/query/expr/#op._S_expr
  */
 async function task_1_14(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('products').aggregate([
+        {
+            $match: {
+                $expr: {$gt: ["$UnitsOnOrder", "$UnitsInStock"]}
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                ProductName: 1,
+                UnitsOnOrder: 1,
+                UnitsInStock: 1
+            }
+        },
+        {
+            $sort: {
+                ProductName: 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -372,7 +516,38 @@ async function task_1_14(db) {
  *       https://docs.mongodb.com/manual/reference/operator/aggregation/dateFromString/
  */
 async function task_1_15(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('orders').aggregate([
+        {
+            $match: {
+                $expr: {$eq: [{$year: {$dateFromString: {dateString: "$OrderDate"}}}, 1997]}
+            }
+        },
+        {
+            $group: {
+                _id: "OrderID",
+                "January": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 1]}, 1, 0]}},
+                "February": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 2]}, 1, 0]}},
+                "March": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 3]}, 1, 0]}},
+                "April": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 4]}, 1, 0]}},
+                "May": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 5]}, 1, 0]}},
+                "June": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 6]}, 1, 0]}},
+                "July": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 7]}, 1, 0]}},
+                "August": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 8]}, 1, 0]}},
+                "September": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 9]}, 1, 0]}},
+                "October": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 10]}, 1, 0]}},
+                "November": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 11]}, 1, 0]}},
+                "December": {$sum: {$cond: [{$eq: [{$month: {$dateFromString: {dateString: "$OrderDate"}}}, 12]}, 1, 0]}}
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+            }
+        }
+    ]).toArray();
+    if (result.length > 0) {
+        return result[0];
+    }
 }
 
 /**
@@ -381,7 +556,27 @@ async function task_1_15(db) {
  * Order by OrderID
  */
 async function task_1_16(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('orders').aggregate([
+        {
+            $match: {
+                ShipPostalCode: {$exists: true}
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                OrderID: 1,
+                CustomerID: 1,
+                ShipCountry: 1
+            }
+        },
+        {
+            $sort: {
+                OrderID: 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -392,7 +587,39 @@ async function task_1_16(db) {
  *  - Round AvgPrice to MAX 2 decimal places
  */
 async function task_1_17(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('products').aggregate([
+        {
+            $group: {
+                _id: "$CategoryID",
+                AvgPrice: {$avg: "$UnitPrice"}
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "_id",
+                foreignField: "CategoryID",
+                as: "Categories"
+            }
+        },
+        {
+            $unwind: "$Categories"
+        },
+        {
+            $project: {
+                _id: 0,
+                CategoryName: "$Categories.CategoryName",
+                "AvgPrice": {$round: ["$AvgPrice", 2]}
+            }
+        },
+        {
+            $sort: {
+                "AvgPrice": -1,
+                CategoryName: 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -407,7 +634,32 @@ async function task_1_17(db) {
  *       https://docs.mongodb.com/manual/reference/operator/aggregation/dateFromString/
  */
 async function task_1_18(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('orders').aggregate([
+        {
+            $match: {
+                $expr: {$eq: [{$year: {$dateFromString: {dateString: "$OrderDate"}}}, 1998]}
+            }
+        },
+        {
+            $group: {
+                _id: "$OrderDate",
+                "Total Number of Orders": {$sum: 1}
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "Order Date": {$dateToString: {date: {$dateFromString:{dateString: "$_id"}}, format: "%Y-%m-%d"}},
+                "Total Number of Orders": 1
+            }
+        },
+        {
+            $sort: {
+                "Order Date": 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -426,7 +678,88 @@ async function task_1_18(db) {
  *       - do not hesitate to "ensureIndex" in "before" function at the top if needed https://docs.mongodb.com/manual/reference/method/db.collection.ensureIndex/
  */
 async function task_1_19(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('customers').aggregate([
+        {
+            $project: {
+                _id: 0,
+                CustomerID: 1,
+                CompanyName: 1
+            }
+        },
+        {
+            $lookup: {
+                from: "orders",
+                let: { customer_ID: "$CustomerID"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$CustomerID", "$$customer_ID"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            OrderID: 1
+                        }
+                    }
+                ],
+                as: "Orders"
+            }
+        },
+        {
+            $unwind: "$Orders"
+        },
+        {
+            $lookup: {
+                from: "order-details",
+                let: { order_ID: "$Orders.OrderID"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$OrderID", "$$order_ID"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            "TotalOrdersAmount": {$multiply : ["$UnitPrice", "$Quantity"]}
+
+                        }
+                    }
+                ],
+                as: "OrderDetails"
+            }
+        },
+        {
+            $unwind: "$OrderDetails"
+        },
+        {
+            $group: {
+                _id: {CustomerID: "$CustomerID", CompanyName: "$CompanyName"},
+                "TotalOrdersAmount": {$sum: "$OrderDetails.TotalOrdersAmount"}
+            }
+        },
+        {
+            $match: {
+                "TotalOrdersAmount": {$gt: 10000}
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                CustomerID: "$_id.CustomerID",
+                CompanyName: "$_id.CompanyName",
+                "TotalOrdersAmount, $": {$round: ["$TotalOrdersAmount", 2]}
+            }
+        },
+        {
+            $sort: {
+                "TotalOrdersAmount, $": -1,
+                CustomerID: 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -435,7 +768,85 @@ async function task_1_19(db) {
  * | EmployeeID | Employee Full Name | Amount, $ |
  */
 async function task_1_20(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('orders').aggregate([
+        {
+            $project: {
+                OrderID: 1,
+                EmployeeID: 1
+            }
+        },
+        {
+            $lookup: {
+                from: "order-details",
+                let: { order_ID: "$OrderID"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$OrderID", "$$order_ID"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            "TotalOrdersAmount": {$multiply : ["$UnitPrice", "$Quantity"]}
+
+                        }
+                    }
+                ],
+                as: "OrderDetails"
+            }
+        },
+        {
+            $unwind: "$OrderDetails"
+        },
+        {
+            $group: {
+                _id: "$EmployeeID",
+                "Amount, $": {$sum: "$OrderDetails.TotalOrdersAmount"}
+            }
+        },
+        {
+            $sort: {
+                "Amount, $": -1
+            }
+        },
+        {
+            $limit: 1
+        },
+        {
+            $lookup: {
+                from: "employees",
+                let: { employee_ID: "$_id"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$EmployeeID", "$$employee_ID"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            "Employee Full Name": {$concat: ["$FirstName", " ", "$LastName"]}
+
+                        }
+                    }
+                ],
+                as: "Employees"
+            }
+        },
+        {
+            $unwind: "$Employees"
+        },
+        {
+            $project: {
+                _id: 0,
+                EmployeeID: "$_id",
+                "Employee Full Name": "$Employees.Employee Full Name",
+                "Amount, $": 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -443,7 +854,30 @@ async function task_1_20(db) {
  * | OrderID | Maximum Purchase Amount, $ |
  */
 async function task_1_21(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('order-details').aggregate([
+        {
+            $group: {
+                _id: "$OrderID",
+                "Maximum Purchase Amount, $": {$sum:{$multiply:["$UnitPrice", "$Quantity"]}},
+            }
+        },
+        {
+            $sort: {
+                "Maximum Purchase Amount, $": -1
+            }
+        },
+        {
+            $limit: 1
+        },
+        {
+            $project: {
+                _id: 0,
+                OrderID: "$_id",
+                "Maximum Purchase Amount, $": 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 /**
@@ -456,7 +890,77 @@ async function task_1_21(db) {
  *       https://docs.mongodb.com/manual/reference/operator/aggregation/lookup/#join-conditions-and-uncorrelated-sub-queries
  */
 async function task_1_22(db) {
-    throw new Error("Not implemented");
+    const result = await db.collection('orders').aggregate([
+        {
+            $lookup: {
+                from: "order-details",
+                let: { order_ID: "$OrderID", customer_ID: "$CustomerID"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$OrderID", "$$order_ID"]}
+                        }
+                    },
+                    {
+                        $sort: {
+                            "UnitPrice": -1
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$$customer_ID",
+                            product: { $first: "$ProductID" },
+                            price: { $first: "$UnitPrice" }
+                        }
+                    }
+
+                ],
+                as: "OrderDetails"
+            }
+        },
+        {
+            $unwind: "$OrderDetails"
+        },
+        {
+            $lookup: {
+                from: "customers",
+                localField: "OrderDetails._id",
+                foreignField: "CustomerID",
+                as: "Customers"
+            }
+        },
+        {
+            $unwind: "$Customers"
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "OrderDetails.product",
+                foreignField: "ProductID",
+                as: "Products"
+            }
+        },
+        {
+            $unwind: "$Products"
+        },
+        {
+            $project: {
+                _id: 0,
+                CustomerID: "$CustomerID",
+                ProductName: "$Products.ProductName",
+                CompanyName: "$Customers.CompanyName",
+                "PricePerItem": "$OrderDetails.price"
+            }
+        },
+        {
+            $sort: {
+                "PricePerItem": -1,
+                CompanyName: 1,
+                ProductName: 1
+            }
+        }
+    ]).toArray();
+    return result;
 }
 
 module.exports = {
