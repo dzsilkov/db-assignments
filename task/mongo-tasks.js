@@ -895,26 +895,13 @@ async function task_1_22(db) {
         {
             $lookup: {
                 from: "order-details",
-                let: { order_ID: "$OrderID", customer_ID: "$CustomerID"},
+                let: { order_ID: "$OrderID"},
                 pipeline: [
                     {
                         $match: {
                             $expr: {$eq: ["$OrderID", "$$order_ID"]}
                         }
-                    },
-                    {
-                        $sort: {
-                            "UnitPrice": -1
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: "$$customer_ID",
-                            product: { $first: "$ProductID" },
-                            price: { $first: "$UnitPrice" }
-                        }
                     }
-
                 ],
                 as: "OrderDetails"
             }
@@ -923,9 +910,21 @@ async function task_1_22(db) {
             $unwind: "$OrderDetails"
         },
         {
+            $sort: {
+                "OrderDetails.UnitPrice": -1
+            }
+        },
+        {
+            $group: {
+                _id: "$CustomerID",
+                product: { $first: "$OrderDetails.ProductID" },
+                price: { $max: "$OrderDetails.UnitPrice" }
+            }
+        },
+        {
             $lookup: {
                 from: "customers",
-                let: { customer_ID: "$CustomerID"},
+                let: { customer_ID: "$_id"},
                 pipeline: [
                     {
                         $match: {
@@ -948,7 +947,7 @@ async function task_1_22(db) {
         {
             $lookup: {
                 from: "products",
-                let: { product_ID: "$OrderDetails.product"},
+                let: { product_ID: "$product"},
                 pipeline: [
                     {
                         $match: {
@@ -971,10 +970,10 @@ async function task_1_22(db) {
         {
             $project: {
                 _id: 0,
-                CustomerID: "$CustomerID",
+                CustomerID: "$_id",
                 ProductName: "$Products.ProductName",
                 CompanyName: "$Customers.CompanyName",
-                "PricePerItem": "$OrderDetails.price"
+                "PricePerItem": "$price"
             }
         },
         {
