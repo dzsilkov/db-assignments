@@ -699,7 +699,9 @@ async function task_1_19(db) {
                     {
                         $project: {
                             _id: 0,
+
                             OrderID: 1
+
                         }
                     }
                 ],
@@ -827,7 +829,6 @@ async function task_1_20(db) {
                         $project: {
                             _id: 0,
                             "Employee Full Name": {$concat: ["$FirstName", " ", "$LastName"]}
-
                         }
                     }
                 ],
@@ -924,8 +925,20 @@ async function task_1_22(db) {
         {
             $lookup: {
                 from: "customers",
-                localField: "OrderDetails._id",
-                foreignField: "CustomerID",
+                let: { customer_ID: "$CustomerID"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$CustomerID", "$$customer_ID"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            CompanyName: "$CompanyName"
+                        }
+                    }
+                ],
                 as: "Customers"
             }
         },
@@ -935,8 +948,20 @@ async function task_1_22(db) {
         {
             $lookup: {
                 from: "products",
-                localField: "OrderDetails.product",
-                foreignField: "ProductID",
+                let: { product_ID: "$OrderDetails.product"},
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {$eq: ["$ProductID", "$$product_ID"]}
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            ProductName: "$ProductName"
+                        }
+                    }
+                ],
                 as: "Products"
             }
         },
