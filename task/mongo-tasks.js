@@ -689,7 +689,7 @@ async function task_1_19(db) {
         {
             $lookup: {
                 from: "orders",
-                let: { customer_ID: "$CustomerID"},
+                let: {customer_ID: "$CustomerID"},
                 pipeline: [
                     {
                         $match: {
@@ -699,9 +699,7 @@ async function task_1_19(db) {
                     {
                         $project: {
                             _id: 0,
-
                             OrderID: 1
-
                         }
                     }
                 ],
@@ -714,7 +712,7 @@ async function task_1_19(db) {
         {
             $lookup: {
                 from: "order-details",
-                let: { order_ID: "$Orders.OrderID"},
+                let: {order_ID: "$Orders.OrderID"},
                 pipeline: [
                     {
                         $match: {
@@ -780,7 +778,7 @@ async function task_1_20(db) {
         {
             $lookup: {
                 from: "order-details",
-                let: { order_ID: "$OrderID"},
+                let: {order_ID: "$OrderID"},
                 pipeline: [
                     {
                         $match: {
@@ -818,7 +816,7 @@ async function task_1_20(db) {
         {
             $lookup: {
                 from: "employees",
-                let: { employee_ID: "$_id"},
+                let: {employee_ID: "$_id"},
                 pipeline: [
                     {
                         $match: {
@@ -895,7 +893,7 @@ async function task_1_22(db) {
         {
             $lookup: {
                 from: "order-details",
-                let: { order_ID: "$OrderID"},
+                let: {order_ID: "$OrderID"},
                 pipeline: [
                     {
                         $match: {
@@ -917,14 +915,14 @@ async function task_1_22(db) {
         {
             $group: {
                 _id: "$CustomerID",
-                product: { $first: "$OrderDetails.ProductID" },
-                price: { $max: "$OrderDetails.UnitPrice" }
+                product: {$first: "$OrderDetails.ProductID"},
+                price: {$max: "$OrderDetails.UnitPrice"}
             }
         },
         {
             $lookup: {
                 from: "customers",
-                let: { customer_ID: "$_id"},
+                let: {customer_ID: "$_id"},
                 pipeline: [
                     {
                         $match: {
@@ -947,7 +945,7 @@ async function task_1_22(db) {
         {
             $lookup: {
                 from: "products",
-                let: { product_ID: "$product"},
+                let: {product_ID: "$product"},
                 pipeline: [
                     {
                         $match: {
