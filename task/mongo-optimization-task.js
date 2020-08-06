@@ -86,7 +86,7 @@ async function task_3_1(db) {
             }
         },
         {
-            $project: {
+            "$project": {
                 "contacts.id": 1,
                 "contacts.questions.category_id": 1,
                 "contacts.questions.answers.primary_answer_value": 1,
@@ -96,7 +96,6 @@ async function task_3_1(db) {
                 "contacts.questions.id" : 1,
                 "contacts.questions.answers.primary_answer_text": 1,
                 "contacts.datePublished": 1,
-                "contacts.win_vendor.name": 1,
                 "contacts.win_vendor.value": 1
             }
         },
@@ -108,11 +107,6 @@ async function task_3_1(db) {
                 "contacts.datePublished" : {
                     "$ne" : null
                 }
-            }
-        },
-        {
-            $project : {
-                "contacts.datePublished" : 0
             }
         },
         {
@@ -203,7 +197,7 @@ async function task_3_1(db) {
             }
         },
         {
-            $project : {
+            "$project" : {
                 "_id" : 1,
                 "contacts.id" : 1,
                 "contacts.questions.criteria_value" : 1,
@@ -224,13 +218,13 @@ async function task_3_1(db) {
                 "let": {"criteria_Value": "$criteria_value"},
                 "pipeline": [
                     {
-                        $match : {"versions.initiativeId" : ObjectId("58af4da0b310d92314627290")}
+                        "$match" : {"versions.initiativeId" : ObjectId("58af4da0b310d92314627290")}
                     },
                     {
-                        $match: {$expr: {$eq: ["$value",  "$$criteria_Value"]}}
+                        "$match": {$expr: {$eq: ["$value",  "$$criteria_Value"]}}
                     },
                     {
-                        $unwind : "$versions"
+                        "$unwind" : "$versions"
                     }
                 ],
                 "as" : "criteria"
@@ -271,12 +265,14 @@ async function task_3_1(db) {
                 }
             }
         },
-        {$unwind: '$answers'},
         {
-            $sort: {
-                'answer_text': 1,
-                'answers.question_id': 1,
-                'answers.answer_value': 1
+            "$unwind": "$answers"
+        },
+        {
+            "$sort": {
+                "answer_text": 1,
+                "answers.question_id": 1,
+                "answers.answer_value": 1
             }
         }
     ], {allowDiskUse:true}).toArray();
