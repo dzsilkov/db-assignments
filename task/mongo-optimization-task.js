@@ -110,6 +110,11 @@ async function task_3_1(db) {
             }
         },
         {
+            "$project" : {
+                "contacts.datePublished" : 0
+            }
+        },
+        {
             "$unwind" : "$contacts.questions"
         },
         {
