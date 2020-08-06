@@ -20,8 +20,8 @@ async function before(db) {
         "contacts.questions.category_id": 1
     });
     await db.collection('clientCriteria').createIndex({
-        "versions.initiativeId": 1,
-        "value": 1
+        "value": 1,
+        "versions.initiativeId": 1
     });
 }
 
