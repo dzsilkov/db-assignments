@@ -174,7 +174,7 @@ async function task_1_8(db) {
            CategoryName AS "CategoryName",
            COUNT(p.ProductID) AS "TotalNumberOfProducts"
         FROM Categories AS c
-        JOIN Products AS p ON p.CategoryID = c.CategoryID
+        INNER JOIN Products AS p ON p.CategoryID = c.CategoryID
         GROUP BY CategoryName
         ORDER BY CategoryName
     `);
@@ -277,7 +277,7 @@ async function task_1_13(db) {
     let result = await db.query(`
         SELECT
            COUNT(ProductID) AS "TotalOfCurrentProducts",
-           SUM(Discontinued) AS "TotalOfDiscontinuedProducts"
+           COUNT(CASE WHEN Discontinued = 1 THEN 1 END) AS "TotalOfDiscontinuedProducts"
         FROM Products
     `);
     return result[0];
@@ -430,8 +430,8 @@ async function task_1_20(db) {
            CONCAT(e.FirstName, ' ', e.LastName) AS "Employee Full Name",
            SUM(od.Quantity * od.UnitPrice) AS "Amount, $"
         FROM Employees AS e
-        JOIN Orders AS o ON o.EmployeeID = e.EmployeeID
-        JOIN OrderDetails AS od ON o.OrderID = od.OrderID
+        INNER JOIN Orders AS o ON o.EmployeeID = e.EmployeeID
+        INNER JOIN OrderDetails AS od ON o.OrderID = od.OrderID
         GROUP BY \`EmployeeID\`
         ORDER BY \`Amount, $\` DESC
         LIMIT 1
