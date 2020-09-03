@@ -130,8 +130,9 @@ async function task_1_6(db) {
            p.ProductName AS "ProductName",
            c.CategoryName AS "CategoryName",
            s.CompanyName AS "SupplierCompanyName"
-        FROM Products AS p, Categories AS c, Suppliers AS s
-        WHERE p.CategoryID = c.CategoryID AND p.SupplierID = s.SupplierID
+        FROM Products AS p
+        INNER JOIN Categories AS c ON c.CategoryID = p.CategoryID
+        INNER JOIN Suppliers AS s ON s.SupplierID = p.SupplierID
         ORDER BY ProductName, SupplierCompanyName
     `);
     return result[0];
@@ -364,7 +365,7 @@ async function task_1_17(db) {
            CategoryName AS "CategoryName",
            AVG(p.UnitPrice) AS "AvgPrice"
         FROM Products AS p
-        JOIN Categories AS c ON c.CategoryID = p.CategoryID
+        INNER JOIN Categories AS c ON c.CategoryID = p.CategoryID
         GROUP BY CategoryName
         ORDER BY AvgPrice DESC, CategoryName
     `);
@@ -406,8 +407,8 @@ async function task_1_19(db) {
            c.CompanyName AS "CompanyName",
            SUM(od.Quantity * od.UnitPrice) AS "TotalOrdersAmount, $"
         FROM Customers AS c
-        JOIN Orders AS o ON c.CustomerID = o.CustomerID
-        JOIN OrderDetails AS od ON o.OrderID = od.OrderID
+        INNER JOIN Orders AS o ON c.CustomerID = o.CustomerID
+        INNER JOIN OrderDetails AS od ON o.OrderID = od.OrderID
         GROUP BY \`CustomerID\`
         HAVING \`TotalOrdersAmount, $\` > 10000
         ORDER BY \`TotalOrdersAmount, $\` DESC, \`CustomerID\`
@@ -472,15 +473,15 @@ async function task_1_22(db) {
            p.ProductName AS "ProductName",
            od.UnitPrice AS "PricePerItem"
         FROM Customers AS c
-        JOIN Orders AS o ON c.CustomerID = o.CustomerID
-        JOIN OrderDetails AS od ON o.OrderID = od.OrderID
-        JOIN Products AS p ON p.ProductID = od.ProductID
+        INNER JOIN Orders AS o ON c.CustomerID = o.CustomerID
+        INNER JOIN OrderDetails AS od ON o.OrderID = od.OrderID
+        INNER JOIN Products AS p ON p.ProductID = od.ProductID
         WHERE od.UnitPrice = (
            SELECT 
               MAX(od2.UnitPrice)
            FROM Customers AS c2
-           JOIN Orders AS o2 ON o2.CustomerID = c2.CustomerID
-           JOIN OrderDetails AS od2 ON o2.OrderID = od2.OrderID
+           INNER JOIN Orders AS o2 ON o2.CustomerID = c2.CustomerID
+           INNER JOIN OrderDetails AS od2 ON o2.OrderID = od2.OrderID
            WHERE c2.CustomerID = c.CustomerID
         )
         ORDER BY \`PricePerItem\` DESC, \`CompanyName\`, \`ProductName\`
