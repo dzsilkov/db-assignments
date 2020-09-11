@@ -208,32 +208,22 @@ async function task_3_1(db) {
                 "let": {"criteria_Value": "$criteria_value"},
                 "pipeline": [
                     {
-                        "$match" : {"versions.initiativeId" : ObjectId("58af4da0b310d92314627290")}
+                        "$match": { "versions.initiativeId" : ObjectId("58af4da0b310d92314627290")}
                     },
                     {
                         "$project": {
                             "value": 1,
                             "label": 1,
-                            "definition" : {
-                                "$ifNull" : [
-                                    "$versions.definition",
-                                    "$definition"
-                                ]
-                            }
+                            "definition": 1,
+                            "versions.definition": 1,
                         }
                     },
                     {
-                        "$match": {$expr: {$eq: ["$value",  "$$criteria_Value"]}},
+                        "$match":  { "$expr": {"$eq": ["$value",  "$$criteria_Value"]} }
                     },
-                    {
-                        "$unwind": "$definition"
-                    }
                 ],
                 "as" : "criteria"
             }
-        },
-        {
-            "$unwind" : "$criteria"
         },
         {
             "$group" : {
@@ -253,8 +243,13 @@ async function task_3_1(db) {
                         "answer_value" : "$contacts.questions.answers.primary_answer_value",
                         "selected" : "$contacts.questions.answers.loopInstances.is_selected",
                         "value" : "$criteria_value",
-                        "text" : "$criteria.label",
-                        "definition" : "$criteria.definition"
+                        "text": { "$arrayElemAt": [ "$criteria.label", 0 ] },
+                        'definition': {
+                            '$ifNull': [
+                                { "$arrayElemAt": [{ "$arrayElemAt": ["$criteria.versions.definition", 0] }, 0] },
+                                { "$arrayElemAt": ["$criteria.definition", 0] }
+                            ]
+                        }
                     }
                 },
                 "count" : {
