@@ -66,19 +66,17 @@ async function task_3_1(db) {
                 },
                 "contacts.shortListedVendors" : {
                     "$elemMatch" : {
+                        "is_selected" : true,
                         "$or" : [
                             {
                                 "name" : "ADP",
-                                "is_selected" : true
                             },
                             {
                                 "value" : {
                                     "$in" : [
                                         50
-                                    ],
-                                    "$lt" : 9000
+                                    ]
                                 },
-                                "is_selected" : true
                             }
                         ]
                     }
@@ -95,24 +93,11 @@ async function task_3_1(db) {
                 "contacts.questions.criteria_value": 1,
                 "contacts.questions.id" : 1,
                 "contacts.questions.answers.primary_answer_text": 1,
-                "contacts.datePublished": 1,
                 "contacts.win_vendor.value": 1
             }
         },
         {
             "$unwind" : "$contacts"
-        },
-        {
-            "$match" : {
-                "contacts.datePublished" : {
-                    "$ne" : null
-                }
-            }
-        },
-        {
-            "$project" : {
-                "contacts.datePublished" : 0
-            }
         },
         {
             "$unwind" : "$contacts.questions"
@@ -226,10 +211,22 @@ async function task_3_1(db) {
                         "$match" : {"versions.initiativeId" : ObjectId("58af4da0b310d92314627290")}
                     },
                     {
-                        "$match": {$expr: {$eq: ["$value",  "$$criteria_Value"]}}
+                        "$project": {
+                            "value": 1,
+                            "label": 1,
+                            "definition" : {
+                                "$ifNull" : [
+                                    "$versions.definition",
+                                    "$definition"
+                                ]
+                            }
+                        }
                     },
                     {
-                        "$unwind" : "$versions"
+                        "$match": {$expr: {$eq: ["$value",  "$$criteria_Value"]}},
+                    },
+                    {
+                        "$unwind": "$definition"
                     }
                 ],
                 "as" : "criteria"
@@ -257,12 +254,7 @@ async function task_3_1(db) {
                         "selected" : "$contacts.questions.answers.loopInstances.is_selected",
                         "value" : "$criteria_value",
                         "text" : "$criteria.label",
-                        "definition" : {
-                            "$ifNull" : [
-                                "$criteria.versions.definition",
-                                "$criteria.definition"
-                            ]
-                        }
+                        "definition" : "$criteria.definition"
                     }
                 },
                 "count" : {
